@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小说章节重排序工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 1px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.8rem;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        input[type="file"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        select {
+            background-color: white;
+            cursor: pointer;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .preview {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .result-section {
+            display: none;
+        }
+        
+        .info {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        
+        .download-btn {
+            background-color: #27ae60;
+            margin-top: 15px;
+        }
+        
+        .download-btn:hover {
+            background-color: #219955;
+        }
+        
+        .file-info {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            padding: 10px;
+            background-color: #fdeaea;
+            border-radius: 6px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            padding: 10px;
+            background-color: #edf7f0;
+            border-radius: 6px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .stats {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            border-left: 4px solid #9b59b6;
+        }
+        
+        .mode-info {
+            background-color: #fff8e1;
+            border-left: 4px solid #f39c12;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .option-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        
+        @media (min-width: 768px) {
+            .options-group {
+                flex-direction: row;
+            }
+            .option-item {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>小说章节重排序工具</h1>
+        <div class="info">
+            本工具支持UTF-8和GB2312编码的TXT文件，提供多种章节处理模式：阿拉伯数字重排序、中文章节数重排序、中文章节数与阿拉伯数字互换。
+        </div>
+        <div class="section">
+            <div class="section-title">上传小说文件</div>
+            <input type="file" id="fileInput" accept=".txt">
+            <div class="file-info" id="fileInfo">请选择TXT文件</div>
+        </div>
+        <div class="section">
+            <div class="section-title">选择处理模式</div>
+            <select id="processMode">
+                <option value="arabic_renumber">阿拉伯数字章节重排序</option>
+                <option value="chinese_renumber">中文章节数重排序</option>
+                <option value="chinese_to_arabic">中文章节数转阿拉伯数字</option>
+                <option value="arabic_to_chinese">阿拉伯数字转中文章节数</option>
+            </select>
+            <div id="modeInfo" class="mode-info">
+                <div id="arabicRenumberInfo">将按照指定起始章节对阿拉伯数字章节（如：第5章）进行重新编号。</div>
+                <div id="chineseRenumberInfo" class="hidden">将按照指定起始章节对中文章节数（如：第五章）进行重新编号，支持"两"转"二"。</div>
+                <div id="chineseToArabicInfo" class="hidden">将中文章节数（如：第五章）转换为阿拉伯数字章节（如：第5章），"两"会自动转换为"二"。</div>
+                <div id="arabicToChineseInfo" class="hidden">将阿拉伯数字章节（如：第5章）转换为中文章节数（如：第五章）。</div>
+            </div>
+        </div>
+        <div class="section" id="startChapterSection">
+            <div class="section-title">设置起始章节</div>
+            <input type="number" id="startChapter" min="1" value="5" placeholder="请输入起始章节数">
+        </div>
+        <div class="section">
+            <button id="processBtn" disabled="">处理文件</button>
+        </div>
+        <div class="section preview-section">
+            <div class="section-title">原始内容预览</div>
+            <div class="preview" id="originalPreview">请上传文件后查看预览</div>
+        </div>
+        <div class="section result-section">
+            <div class="section-title">处理结果预览</div>
+            <div class="stats" id="statsInfo"></div>
+            <div class="preview" id="resultPreview"></div>
+            <button class="download-btn" id="downloadBtn">下载处理后的文件</button>
+        </div>
+        <div id="errorMsg" class="error hidden"></div>
+        <div id="successMsg" class="success hidden"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const startChapterInput = document.getElementById('startChapter');
+            const processModeSelect = document.getElementById('processMode');
+            const processBtn = document.getElementById('processBtn');
+            const originalPreview = document.getElementById('originalPreview');
+            const resultPreview = document.getElementById('resultPreview');
+            const resultSection = document.querySelector('.result-section');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const fileInfo = document.getElementById('fileInfo');
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            const statsInfo = document.getElementById('statsInfo');
+            const startChapterSection = document.getElementById('startChapterSection');
+            const modeInfo = document.getElementById('modeInfo');
+            // 模式说明元素
+            const arabicRenumberInfo = document.getElementById('arabicRenumberInfo');
+            const chineseRenumberInfo = document.getElementById('chineseRenumberInfo');
+            const chineseToArabicInfo = document.getElementById('chineseToArabicInfo');
+            const arabicToChineseInfo = document.getElementById('arabicToChineseInfo');
+            let originalContent = '';
+            let processedContent = '';
+            let fileName = '';
+            // 中文数字映射
+            const chineseNumbers = {
+                '零': 0,
+                '〇': 0,
+                '一': 1,
+                '二': 2,
+                '三': 3,
+                '四': 4,
+                '五': 5,
+                '六': 6,
+                '七': 7,
+                '八': 8,
+                '九': 9,
+                '十': 10,
+                '百': 100,
+                '千': 1000,
+                '万': 10000,
+                '两': 2
+            };
+            const arabicToChineseMap = {
+                0: '零',
+                1: '一',
+                2: '二',
+                3: '三',
+                4: '四',
+                5: '五',
+                6: '六',
+                7: '七',
+                8: '八',
+                9: '九',
+                10: '十'
+            };
+            // 文件选择事件
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.name.toLowerCase().endsWith('.txt')) {
+                    showError('请选择TXT格式的文件');
+                    return;
+                }
+                fileName = file.name;
+                fileInfo.textContent = `已选择文件: ${file.name} (${formatFileSize(file.size)})`;
+                const reader = new FileReader();
+                // 先尝试UTF-8编码
+                reader.onload = function(e) {
+                    try {
+                        originalContent = e.target.result;
+                        originalPreview.textContent = originalContent.substring(0, 1000) +
+                            (originalContent.length > 1000 ? '...' : '');
+                        processBtn.disabled = false;
+                        hideError();
+                    } catch (err) {
+                        // UTF-8读取失败，尝试GB2312
+                        tryGB2312(file);
+                    }
+                };
+                reader.onerror = function() {
+                    tryGB2312(file);
+                };
+                reader.readAsText(file, 'UTF-8');
+            });
+            // 尝试GB2312编码
+            function tryGB2312(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const buffer = e.target.result;
+                        const decoder = new TextDecoder('gb2312');
+                        const uint8Array = new Uint8Array(buffer);
+                        originalContent = decoder.decode(uint8Array);
+                        originalPreview.textContent = originalContent.substring(0, 1000) +
+                            (originalContent.length > 1000 ? '...' : '');
+                        processBtn.disabled = false;
+                        hideError();
+                    } catch (err) {
+                        showError('文件编码无法识别，请确保文件为UTF-8或GB2312编码');
+                    }
+                };
+                reader.onerror = function() {
+                    showError('文件读取失败，请重试');
+                };
+                reader.readAsArrayBuffer(file);
+            }
+            // 处理模式选择变化
+            processModeSelect.addEventListener('change', function() {
+                const mode = this.value;
+                // 显示/隐藏起始章节输入框
+                if (mode === 'arabic_renumber' || mode === 'chinese_renumber') {
+                    startChapterSection.style.display = 'block';
+                } else {
+                    startChapterSection.style.display = 'none';
+                }
+                // 显示对应的模式说明
+                arabicRenumberInfo.classList.add('hidden');
+                chineseRenumberInfo.classList.add('hidden');
+                chineseToArabicInfo.classList.add('hidden');
+                arabicToChineseInfo.classList.add('hidden');
+                switch (mode) {
+                    case 'arabic_renumber':
+                        arabicRenumberInfo.classList.remove('hidden');
+                        break;
+                    case 'chinese_renumber':
+                        chineseRenumberInfo.classList.remove('hidden');
+                        break;
+                    case 'chinese_to_arabic':
+                        chineseToArabicInfo.classList.remove('hidden');
+                        break;
+                    case 'arabic_to_chinese':
+                        arabicToChineseInfo.classList.remove('hidden');
+                        break;
+                }
+            });
+            // 处理按钮点击事件
+            processBtn.addEventListener('click', function() {
+                const mode = processModeSelect.value;
+                const startChapter = parseInt(startChapterInput.value);
+                if ((mode === 'arabic_renumber' || mode === 'chinese_renumber') &&
+                    (isNaN(startChapter) || startChapter < 1)) {
+                    showError('请输入有效的起始章节数');
+                    return;
+                }
+                try {
+                    switch (mode) {
+                        case 'arabic_renumber':
+                            processedContent = renumberArabicChapters(originalContent, startChapter);
+                            break;
+                        case 'chinese_renumber':
+                            processedContent = renumberChineseChapters(originalContent, startChapter);
+                            break;
+                        case 'chinese_to_arabic':
+                            processedContent = convertChineseToArabic(originalContent);
+                            break;
+                        case 'arabic_to_chinese':
+                            processedContent = convertArabicToChinese(originalContent);
+                            break;
+                        default:
+                            showError('未知的处理模式');
+                            return;
+                    }
+                    resultPreview.textContent = processedContent.substring(0, 1000) +
+                        (processedContent.length > 1000 ? '...' : '');
+                    resultSection.style.display = 'block';
+                    hideError();
+                    showSuccess('文件处理完成！');
+                } catch (err) {
+                    showError('处理文件时出错: ' + err.message);
+                }
+            });
+            // 下载按钮点击事件
+            downloadBtn.addEventListener('click', function() {
+                if (!processedContent) return;
+                try {
+                    // 生成新的文件名
+                    const dotIndex = fileName.lastIndexOf('.');
+                    const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
+                    const extension = dotIndex !== -1 ? fileName.substring(dotIndex) : '.txt';
+                    let modeSuffix = '';
+                    switch (processModeSelect.value) {
+                        case 'arabic_renumber':
+                            modeSuffix = '_阿拉伯数字重排序';
+                            break;
+                        case 'chinese_renumber':
+                            modeSuffix = '_中文章节重排序';
+                            break;
+                        case 'chinese_to_arabic':
+                            modeSuffix = '_中文转阿拉伯数字';
+                            break;
+                        case 'arabic_to_chinese':
+                            modeSuffix = '_阿拉伯数字转中文';
+                            break;
+                    }
+                    const newFileName = `${baseName}${modeSuffix}${extension}`;
+                    // 创建Blob对象
+                    const blob = new Blob([processedContent], {
+                        type: 'text/plain;charset=utf-8'
+                    });
+                    // 创建下载链接
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = newFileName;
+                    // 触发下载
+                    document.body.appendChild(a);
+                    a.click();
+                    // 清理
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    showSuccess('文件下载已开始！');
+                } catch (err) {
+                    showError('下载失败: ' + err.message);
+                }
+            });
+            // 阿拉伯数字章节重排序
+            function renumberArabicChapters(content, startChapter) {
+                // 匹配阿拉伯数字章节格式：第x章
+                const chapterRegex = /第\s*(\d+)\s*章/g;
+                let currentChapter = startChapter;
+                let newContent = content;
+                let match;
+                let chapterCount = 0;
+                // 找到所有章节并记录位置
+                const chapters = [];
+                while ((match = chapterRegex.exec(content)) !== null) {
+                    chapters.push({
+                        index: match.index,
+                        original: match[0],
+                        number: match[1],
+                        length: match[0].length
+                    });
+                    chapterCount++;
+                }
+                // 如果没有找到章节
+                if (chapters.length === 0) {
+                    showError('未找到阿拉伯数字章节标题，请确保章节格式为"第x章"（x为阿拉伯数字）');
+                    return content;
+                }
+                // 从前往后替换，保持章节顺序
+                for (let i = 0; i < chapters.length; i++) {
+                    const chapter = chapters[i];
+                    const newChapter = `第${currentChapter}章`;
+                    // 替换章节标题
+                    newContent = newContent.substring(0, chapter.index) +
+                        newChapter +
+                        newContent.substring(chapter.index + chapter.length);
+                    // 更新后续章节的索引
+                    const lengthDiff = newChapter.length - chapter.length;
+                    for (let j = i + 1; j < chapters.length; j++) {
+                        chapters[j].index += lengthDiff;
+                    }
+                    currentChapter++;
+                }
+                // 显示统计信息
+                statsInfo.textContent = `共找到 ${chapterCount} 个阿拉伯数字章节，已从第 ${startChapter} 章开始重新编号`;
+                return newContent;
+            }
+            // 中文章节数重排序
+            function renumberChineseChapters(content, startChapter) {
+                // 匹配中文章节格式：第x章，其中x为中文数字
+                const chapterRegex = /第\s*([零一二三四五六七八九十百千万两]+)\s*章/g;
+                let currentChapter = startChapter;
+                let newContent = content;
+                let match;
+                let chapterCount = 0;
+                // 找到所有章节并记录位置
+                const chapters = [];
+                while ((match = chapterRegex.exec(content)) !== null) {
+                    chapters.push({
+                        index: match.index,
+                        original: match[0],
+                        number: match[1],
+                        length: match[0].length
+                    });
+                    chapterCount++;
+                }
+                // 如果没有找到章节
+                if (chapters.length === 0) {
+                    showError('未找到中文章节标题，请确保章节格式为"第x章"（x为中文数字）');
+                    return content;
+                }
+                // 从前往后替换，保持章节顺序
+                for (let i = 0; i < chapters.length; i++) {
+                    const chapter = chapters[i];
+                    const newChapterChinese = arabicToChinese(currentChapter);
+                    const newChapter = `第${newChapterChinese}章`;
+                    // 替换章节标题
+                    newContent = newContent.substring(0, chapter.index) +
+                        newChapter +
+                        newContent.substring(chapter.index + chapter.length);
+                    // 更新后续章节的索引
+                    const lengthDiff = newChapter.length - chapter.length;
+                    for (let j = i + 1; j < chapters.length; j++) {
+                        chapters[j].index += lengthDiff;
+                    }
+                    currentChapter++;
+                }
+                // 显示统计信息
+                statsInfo.textContent = `共找到 ${chapterCount} 个中文章节，已从第 ${arabicToChinese(startChapter)} 章开始重新编号`;
+                return newContent;
+            }
+            // 中文章节数转阿拉伯数字
+            function convertChineseToArabic(content) {
+                // 匹配中文章节格式：第x章，其中x为中文数字
+                const chapterRegex = /第\s*([零一二三四五六七八九十百千万两]+)\s*章/g;
+                let newContent = content;
+                let match;
+                let chapterCount = 0;
+                let lastIndex = 0;
+                const chapters = [];
+                // 找到所有章节并记录位置
+                while ((match = chapterRegex.exec(content)) !== null) {
+                    chapters.push({
+                        index: match.index,
+                        original: match[0],
+                        number: match[1],
+                        length: match[0].length
+                    });
+                    chapterCount++;
+                }
+                // 如果没有找到章节
+                if (chapters.length === 0) {
+                    showError('未找到中文章节标题，请确保章节格式为"第x章"（x为中文数字）');
+                    return content;
+                }
+                // 从后往前替换，避免索引变化问题
+                for (let i = chapters.length - 1; i >= 0; i--) {
+                    const chapter = chapters[i];
+                    const arabicNumber = chineseToArabic(chapter.number);
+                    const newChapter = `第${arabicNumber}章`;
+                    // 替换章节标题
+                    newContent = newContent.substring(0, chapter.index) +
+                        newChapter +
+                        newContent.substring(chapter.index + chapter.length);
+                }
+                // 显示统计信息
+                statsInfo.textContent = `共找到 ${chapterCount} 个中文章节，已全部转换为阿拉伯数字`;
+                return newContent;
+            }
+            // 阿拉伯数字转中文章节数
+            function convertArabicToChinese(content) {
+                // 匹配阿拉伯数字章节格式：第x章
+                const chapterRegex = /第\s*(\d+)\s*章/g;
+                let newContent = content;
+                let match;
+                let chapterCount = 0;
+                const chapters = [];
+                // 找到所有章节并记录位置
+                while ((match = chapterRegex.exec(content)) !== null) {
+                    chapters.push({
+                        index: match.index,
+                        original: match[0],
+                        number: parseInt(match[1]),
+                        length: match[0].length
+                    });
+                    chapterCount++;
+                }
+                // 如果没有找到章节
+                if (chapters.length === 0) {
+                    showError('未找到阿拉伯数字章节标题，请确保章节格式为"第x章"（x为阿拉伯数字）');
+                    return content;
+                }
+                // 从后往前替换，避免索引变化问题
+                for (let i = chapters.length - 1; i >= 0; i--) {
+                    const chapter = chapters[i];
+                    const chineseNumber = arabicToChinese(chapter.number);
+                    const newChapter = `第${chineseNumber}章`;
+                    // 替换章节标题
+                    newContent = newContent.substring(0, chapter.index) +
+                        newChapter +
+                        newContent.substring(chapter.index + chapter.length);
+                }
+                // 显示统计信息
+                statsInfo.textContent = `共找到 ${chapterCount} 个阿拉伯数字章节，已全部转换为中文章节数`;
+                return newContent;
+            }
+            // 中文数字转阿拉伯数字
+            function chineseToArabic(chineseNum) {
+                // 处理"两"转换为"二"
+                chineseNum = chineseNum.replace(/两/g, '二');
+                // 简单的中文数字转换（支持0-9999）
+                let result = 0;
+                let temp = 0;
+                let total = 0;
+                for (let i = 0; i < chineseNum.length; i++) {
+                    const char = chineseNum[i];
+                    const num = chineseNumbers[char];
+                    if (num === undefined) {
+                        throw new Error(`无法识别的中文数字: ${char}`);
+                    }
+                    if (num < 10) {
+                        temp = num;
+                    } else if (num === 10) {
+                        if (temp === 0) {
+                            temp = 1;
+                        }
+                        total += temp * num;
+                        temp = 0;
+                    } else if (num >= 100) {
+                        if (temp === 0) {
+                            temp = 1;
+                        }
+                        total += temp * num;
+                        temp = 0;
+                    }
+                }
+                total += temp;
+                return total;
+            }
+            // 阿拉伯数字转中文数字（支持0-9999）
+            function arabicToArabic(arabicNum) {
+                // 简单的阿拉伯数字转中文数字（支持0-99）
+                if (arabicNum === 0) return '零';
+                if (arabicNum <= 10) return arabicToChineseMap[arabicNum];
+                if (arabicNum < 20) {
+                    return '十' + (arabicNum % 10 === 0 ? '' : arabicToChineseMap[arabicNum % 10]);
+                }
+                if (arabicNum < 100) {
+                    const tens = Math.floor(arabicNum / 10);
+                    const units = arabicNum % 10;
+                    return arabicToChineseMap[tens] + '十' + (units === 0 ? '' : arabicToChineseMap[units]);
+                }
+                if (arabicNum < 1000) {
+                    const hundreds = Math.floor(arabicNum / 100);
+                    const remainder = arabicNum % 100;
+                    return arabicToChineseMap[hundreds] + '百' + (remainder === 0 ? '' : arabicToChinese(remainder));
+                }
+                if (arabicNum < 10000) {
+                    const thousands = Math.floor(arabicNum / 1000);
+                    const remainder = arabicNum % 1000;
+                    return arabicToChineseMap[thousands] + '千' + (remainder === 0 ? '' : arabicToChinese(remainder));
+                }
+                // 如果超过9999，直接返回数字字符串
+                return arabicNum.toString();
+            }
+            // 简化的阿拉伯数字转中文数字（优化版本）
+            function arabicToChinese(num) {
+                if (num === 0) return '零';
+                const units = ['', '十', '百', '千'];
+                const numbers = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+                if (num < 10) return numbers[num];
+                // 处理10-19的特殊情况
+                if (num < 20) {
+                    return '十' + (num % 10 === 0 ? '' : numbers[num % 10]);
+                }
+                let result = '';
+                let digitIndex = 0;
+                let tempNum = num;
+                let lastZero = false;
+                while (tempNum > 0) {
+                    const digit = tempNum % 10;
+                    if (digit === 0) {
+                        if (!lastZero && digitIndex > 0) {
+                            result = numbers[0] + result;
+                            lastZero = true;
+                        }
+                    } else {
+                        const unit = digitIndex > 0 ? units[digitIndex] : '';
+                        result = numbers[digit] + unit + result;
+                        lastZero = false;
+                    }
+                    tempNum = Math.floor(tempNum / 10);
+                    digitIndex++;
+                }
+                // 清理多余的零
+                result = result.replace(/零+/g, '零').replace(/零$/, '');
+                return result;
+            }
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            // 显示错误信息
+            function showError(message) {
+                errorMsg.textContent = message;
+                errorMsg.classList.remove('hidden');
+                successMsg.classList.add('hidden');
+            }
+            // 显示成功信息
+            function showSuccess(message) {
+                successMsg.textContent = message;
+                successMsg.classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+            }
+            // 隐藏错误信息
+            function hideError() {
+                errorMsg.textContent = '';
+                errorMsg.classList.add('hidden');
+            }
+            // 初始化模式说明
+            processModeSelect.dispatchEvent(new Event('change'));
+        });
+    </script>
+</body>
+
+</html>
